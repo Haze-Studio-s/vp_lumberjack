@@ -70,6 +70,19 @@ function Security.DistanceTo(src, coords)
     return #(GetEntityCoords(ped) - vector3(coords.x, coords.y, coords.z))
 end
 
+--- Limpa registros e tokens do jogador (usado no teardown de sessao).
+--- @param src number
+function Security.ClearPlayer(src)
+    cooldowns[src]  = nil
+    authTokens[src] = nil
+end
+
+--- Limpa apenas tokens pendentes de autorizacao.
+--- @param src number
+function Security.ClearAuth(src)
+    authTokens[src] = nil
+end
+
 --- Loga atividade suspeita no console e (se configurado) num webhook Discord.
 --- @param src number
 --- @param event string
@@ -89,6 +102,5 @@ end
 
 AddEventHandler('playerDropped', function()
     local src = source
-    cooldowns[src]  = nil
-    authTokens[src] = nil
+    Security.ClearPlayer(src)
 end)

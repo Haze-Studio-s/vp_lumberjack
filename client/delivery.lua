@@ -37,6 +37,14 @@ end
 -- Descarga
 --------------------------------------------------------------------------------
 local function unloadFlow()
+    local okBegin, resBegin = lib.callback.await('vp_lumberjack:delivery:beginUnload', false)
+    if not okBegin then
+        VPL.Notify('error', VPL.Err(resBegin, {
+            no_load = 'deliv_done', site_far = 'site_far', truck_far = 'truck_far', vehicle_gone = 'truck_far'
+        }))
+        return
+    end
+
     local done = VPL.UI.ProgressBar({
         duration = Config.Delivery.unloadDuration,
         label = locale('deliv_unloading'),
@@ -45,9 +53,11 @@ local function unloadFlow()
         canCancel = true,
         disable = { move = true, car = true, combat = true },
     })
-    if not done then return end
+    if not done or not active then return end
 
-    local ok, data = lib.callback.await('vp_lumberjack:delivery:unload', false)
+    local ok, data = lib.callback.await('vp_lumberjack:delivery:finishUnload', false)
+    if not active then return end
+
     if ok then
         left = data.left
         popCosmetic()

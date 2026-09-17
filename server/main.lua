@@ -32,19 +32,25 @@ function VPL.CanWork(src)
     return p.PlayerData.job and p.PlayerData.job.name == Config.JobName
 end
 
---- Spawna um veículo de trabalho server-side (OneSync) e dá a chave ao jogador.
+--- Spawna um veiculo de trabalho server-side (OneSync) e da a chave ao jogador.
 --- @param src number
 --- @param model string
 --- @param spawn vector4
 --- @return number|nil entity
 function VPL.SpawnVehicle(src, model, spawn)
-    local veh = CreateVehicle(GetHashKey(model), spawn.x, spawn.y, spawn.z, spawn.w, true, true)
+    if not model or type(model) ~= 'string' then return nil end
+    local hash = GetHashKey(model)
+    local veh = CreateVehicle(hash, spawn.x, spawn.y, spawn.z, spawn.w, true, true)
     local timeout = 0
     while not DoesEntityExist(veh) and timeout < 100 do Wait(10); timeout = timeout + 1 end
     if not DoesEntityExist(veh) then return nil end
 
     Entity(veh).state:set('vpl_owner', src, true)
-    exports.qbx_vehiclekeys:GiveKeys(src, veh, true)
+    pcall(function()
+        if GetResourceState('qbx_vehiclekeys') == 'started' then
+            exports.qbx_vehiclekeys:GiveKeys(src, veh, true)
+        end
+    end)
     return veh
 end
 

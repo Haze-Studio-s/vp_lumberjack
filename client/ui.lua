@@ -5,11 +5,8 @@
 VPL = VPL or {}
 VPL.UI = {}
 
-local isLationActive = false
-
-CreateThread(function()
-    isLationActive = GetResourceState('lation_ui') == 'started'
-end)
+local isLationActive = GetResourceState('lation_ui') == 'started'
+local textProvider = nil
 
 AddEventHandler('onResourceStart', function(resName)
     if resName == 'lation_ui' then
@@ -20,6 +17,9 @@ end)
 AddEventHandler('onResourceStop', function(resName)
     if resName == 'lation_ui' then
         isLationActive = false
+        textProvider = nil
+    elseif resName == GetCurrentResourceName() then
+        VPL.UI.HideText()
     end
 end)
 
@@ -30,9 +30,10 @@ end)
 function VPL.UI.Notify(ntype, message, title)
     title = title or 'Serraria'
     if isLationActive then
+        local lationType = ntype == 'inform' and 'info' or ntype
         local ok = pcall(function()
             exports.lation_ui:notify({
-                type = ntype,
+                type = lationType,
                 title = title,
                 description = message,
                 position = 'top-right'
@@ -62,25 +63,37 @@ function VPL.UI.ShowText(text, icon, keybind)
                 position = 'right-center'
             })
         end)
-        if ok then return end
+        if ok then
+            textProvider = 'lation'
+            return
+        end
     end
     lib.showTextUI(text, {
         icon = icon or 'tree',
         position = 'right-center'
     })
+    textProvider = 'ox'
 end
 
 --- Oculta TextUI da tela
 function VPL.UI.HideText()
-    if isLationActive then
+    if textProvider == 'lation' and isLationActive then
         pcall(function()
             exports.lation_ui:hideText()
         end)
+    elseif textProvider == 'ox' then
+        lib.hideTextUI()
+    else
+        -- Fallback seguro
+        if isLationActive then
+            pcall(function() exports.lation_ui:hideText() end)
+        end
+        lib.hideTextUI()
     end
-    lib.hideTextUI()
+    textProvider = nil
 end
 
---- Executa barra de progresso
+--- Executa barra de progresso com timeout de seguranca (anti-freeze)
 --- @param data table
 --- @return boolean success
 function VPL.UI.ProgressBar(data)
@@ -103,7 +116,13 @@ function VPL.UI.ProgressBar(data)
             end)
         end)
         if ok then
+            local started = GetGameTimer()
+            local duration = data.duration or 5000
+            local timeout = duration + 3000
             while not finished do
+                if GetGameTimer() - started > timeout then
+                    return false
+                end
                 Wait(100)
             end
             return success

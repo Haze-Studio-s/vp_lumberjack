@@ -313,4 +313,11 @@ end)
 
 RegisterNetEvent('vp_lumberjack:client:jobEnded', function(jobKey)
     if jobKey == 'cutting' then teardownCutting() end
+ end)
+
+AddEventHandler('onResourceStop', function(res)
+    if res == GetCurrentResourceName() then
+        teardownCutting()
+        VPL.StopChainsaw()
+    end
 end)

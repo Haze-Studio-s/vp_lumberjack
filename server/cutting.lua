@@ -28,6 +28,10 @@ end)
 --------------------------------------------------------------------------------
 lib.callback.register('vp_lumberjack:cutting:beginFell', function(src, id)
     if not Security.IsValidSource(src) or not isCutting(src) then return false, 'no_session' end
+    if type(id) ~= 'number' or id % 1 ~= 0 then
+        Security.LogSuspicious(src, 'beginFell', 'bad id type=' .. type(id))
+        return false, 'failed'
+    end
     if Security.IsOnCooldown(src, 'fell', Config.Cooldowns.action) then return false, 'cooldown' end
 
     local t = Trees[id]
@@ -58,6 +62,10 @@ end)
 
 lib.callback.register('vp_lumberjack:cutting:finishFell', function(src, id)
     if not Security.IsValidSource(src) or not isCutting(src) then return false, 'no_session' end
+    if type(id) ~= 'number' or id % 1 ~= 0 then
+        Security.LogSuspicious(src, 'finishFell', 'bad id type=' .. type(id))
+        return false, 'failed'
+    end
     if not Security.ConsumeAuth(src, 'fell', id) then
         Security.LogSuspicious(src, 'finishFell', 'sem token/instant id=' .. tostring(id))
         return false, 'failed'
@@ -73,7 +81,7 @@ lib.callback.register('vp_lumberjack:cutting:finishFell', function(src, id)
     t.respawnAt  = GetGameTimer() + (Config.Cutting.respawnMinutes * 60000)
     broadcast(id, false)
 
-    -- Registra carga pendente de toras na sessão
+    -- Registra carga pendente de toras na sessao
     local s = VPL.GetSession(src)
     if s then
         s.cutPending = (s.cutPending or 0) + 1
@@ -91,6 +99,11 @@ lib.callback.register('vp_lumberjack:cutting:deliver', function(src)
     local s = VPL.GetSession(src)
     if not s or (s.cutPending or 0) <= 0 then return false, 'no_load' end
 
+    -- Fail-closed se o veiculo nao existir
+    if not s.vehicle or not DoesEntityExist(s.vehicle) then
+        return false, 'vehicle_gone'
+    end
+
     local stand = Config.Cutting.stand
     if Security.DistanceTo(src, stand.coords) > stand.radius + 3.0 then return false, 'stand_far' end
 
@@ -98,6 +111,18 @@ lib.callback.register('vp_lumberjack:cutting:deliver', function(src)
     local pay = Config.Jobs.cutting.pay.perTree
     VPL.AddEarning(src, pay)
     return true, { pay = pay }
+end)
+
+--------------------------------------------------------------------------------
+-- Limpeza de reservas no cancelamento/fim da sessao
+--------------------------------------------------------------------------------
+AddEventHandler('vp_lumberjack:server:onSessionEnd', function(src, job)
+    for _, t in pairs(Trees) do
+        if t.reservedBy == src then
+            t.reservedBy = nil
+            t.reserveExp = nil
+        end
+    end
 end)
 
 --------------------------------------------------------------------------------

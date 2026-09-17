@@ -1,10 +1,11 @@
-# vp_lumberjack (v3.0.0)
+# vp_lumberjack (v3.1.0 - Audit Hardened)
 
 Job de **lenhador de alto desempenho** para QBox / QBCore. Três sub-jobs imersivos com **física realista de queda**, **desdobro de toras**, **operação de garfo** (telehandler/empilhadeira), **controle de rampas de carreta**, **pagamento acumulado pago na devolução do veículo** e **cancelamento preventivo por morte / distância / dano**.
 
 Server-authoritative, sem DB (estado volátil em runtime), **Dual-Asset Engine** (suporta assets customizados do `plt_lumberjack-streams` com fallback suave para nativos do GTA) e **interface padronizada com `lation_ui`** (com fallback automático para `ox_lib`).
 
 Stack: `qbx_core` · `ox_lib` · `ox_inventory` · `ox_target` · `qbx_vehiclekeys` · `lation_ui` (opcional).
+Segurança & Resmon: **Auditado e Hardened via Codex / GPT-5.5** (OmniRoute).
 
 ---
 
@@ -23,27 +24,37 @@ Cada serviço **spawna o veículo apropriado**, entrega a chave e inicia o rastr
 
 ---
 
-## ⚡ Diferenciais de Engenharia da Versão 3.0.0
+## ⚡ Diferenciais de Engenharia da Versão 3.1.0
 
-1. **Padrão Visual `lation_ui`:**
+1. **Padrão Visual `lation_ui` Blindado:**
    - Camada bridge em `client/ui.lua` roteando notificações, TextUI, barras de progresso e menus de contexto no `lation_ui`.
-   - Se o recurso `lation_ui` não estiver em execução ou for reiniciado, a interface degrada automaticamente para `ox_lib` sem erros de script.
+   - Detecção síncrona de estado, tracking de provedor ativo (impede conflito com outros TextUIs) e timeout watchdog na barra de progresso contra telas travadas.
+   - Limpeza mandatória de TextUI e entidades em `onResourceStop`.
 
-2. **Física Realista de Queda e Partículas:**
-   - Incorporado o algoritmo de tombamento gradual com detecção de obstáculos e partículas de serragem (`ent_dst_wood_splinter`).
-   - O tronco caído é desdobrado no solo através do `ox_target`, gerando toras físicas para coleta com o telehandler.
+2. **Blindagem Anti-Exploit Server-Authoritative:**
+   - **Autorização em 2 Fases (Token + Duração Mínima):**
+     * Corte: `beginFell` / `finishFell` com `fellMin`.
+     * Entrega: `beginUnload` / `finishUnload` com `unloadMin`.
+     * Empilhamento: `pickup` registra carga física e `drop` valida posse e tempo de transporte (`too_fast`).
+   - **Fail-Closed de Veículos:** Todas as operações conferem a existência física e integridade do veículo de trabalho no servidor; qualquer remoção ou desvio encerra a sessão imediatamente sem pagamento.
+   - **Locks de Spawn (`SpawnLocks`):** Eliminação de race condition em múltiplos spawns concorrentes no centro de trabalho.
+   - **Watchdog Server-Side Autônomo:** O servidor checa independentemente a morte do ped, dano de motor/chassi e distância física, dispensando a confiança no cliente.
+   - **Proteção Anti-Reentrância:** Encerramento e anulação do estado da sessão executados estritamente antes do disparo de pagamento na devolução.
+   - **Teto Máximo de Ganhos:** Cap operacional por tipo de serviço evitando acúmulo desproporcional.
 
-3. **Logística de Carretas e Rampas:**
-   - Carretas com rampas traseiras operáveis por `ox_target` (`Baixar / Subir Rampas da Carreta`) e som hidráulico.
+3. **Performance Cravada em 0.00ms (Resmon):**
+   - Eliminação completa de loops `Wait(0)` a pé: loops de manobra só ativam 0ms se o jogador estiver efetivamente conduzindo o veículo de trabalho (`InForkVehicle()`).
+
+4. **Física Realista de Queda e Partículas:**
+   - Algoritmo de tombamento gradual com detecção de obstáculos e partículas de serragem (`ent_dst_wood_splinter`).
+   - Desdobro do tronco caído via `ox_target`, gerando toras físicas para manobra com garfo.
+
+5. **Logística de Carretas e Rampas:**
+   - Rampas traseiras operáveis por `ox_target` (`Baixar / Subir Rampas da Carreta`) e som hidráulico.
    - Posicionamento tridimensional escalonado dos pallets na prancha.
 
-4. **Performance Cravada em 0.00ms:**
-   - Eliminação completa de loops de verificação de distância com `Wait(0)`.
-   - Implementação de tick rate dinâmico que dorme em repouso (`Wait(1000)`) e só desperta no raio de manobra (< 8.0m).
-
-5. **Dual-Asset Engine (Custom vs Nativo):**
-   - Configurado para reconhecer os veículos e props do `plt_lumberjack-streams` (`jcb`, `pltforklift`, `plttrflat`, `pltpacker`, `polat_lumberjack_*`).
-   - Caso o servidor não possua esses assets montados, o script degrada suavemente para modelos nativos do GTA sem crashes.
+6. **Dual-Asset Engine (Custom vs Nativo):**
+   - Suporte transparente a assets customizados do `plt_lumberjack-streams` com fallback limpo para modelos nativos do GTA.
 
 ---
 

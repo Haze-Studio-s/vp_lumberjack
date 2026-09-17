@@ -67,9 +67,15 @@ function VPL.ForkCarry(load, pickupCoords, drop, onDropped)
         elseif dist > 8.0 then
             Wait(250)
         else
-            Wait(0)
             local veh = VPL.InForkVehicle()
-            if veh then
+            if not veh then
+                if textShown then
+                    VPL.UI.HideText()
+                    textShown = false
+                end
+                Wait(250)
+            else
+                Wait(0)
                 VPL.DrawForkZone(pickupCoords)
                 local tip = VPL.ForkTip(veh)
                 if #(tip - pickupCoords) <= Config.Fork.alignDistance then
@@ -88,9 +94,6 @@ function VPL.ForkCarry(load, pickupCoords, drop, onDropped)
                     VPL.UI.HideText()
                     textShown = false
                 end
-            elseif textShown then
-                VPL.UI.HideText()
-                textShown = false
             end
         end
     end
@@ -106,9 +109,15 @@ function VPL.ForkCarry(load, pickupCoords, drop, onDropped)
         elseif dist > 8.0 then
             Wait(250)
         else
-            Wait(0)
             local veh = VPL.InForkVehicle()
-            if veh then
+            if not veh then
+                if textShown then
+                    VPL.UI.HideText()
+                    textShown = false
+                end
+                Wait(250)
+            else
+                Wait(0)
                 VPL.DrawForkZone(drop.coords)
                 local tip = VPL.ForkTip(veh)
                 local aligned = #(tip - drop.coords) <= drop.radius
@@ -131,9 +140,6 @@ function VPL.ForkCarry(load, pickupCoords, drop, onDropped)
                     VPL.UI.HideText()
                     textShown = false
                 end
-            elseif textShown then
-                VPL.UI.HideText()
-                textShown = false
             end
         end
     end

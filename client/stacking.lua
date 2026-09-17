@@ -166,14 +166,17 @@ local function runLoop()
                         if np then
                             showPrompt(locale('fork_grab'))
                             if IsControlJustReleased(0, Config.Fork.grabKey) then
-                                VPL.ForkAttach(veh, np.ent)
-                                carrying = np.ent
-                                showPrompt(nil)
-                                PlaySoundFrontend(-1, 'PICK_UP', 'HUD_FRONTEND_DEFAULT_SOUNDSET', true)
-                                for i, p in ipairs(pallets) do
-                                    if p == np then
-                                        table.remove(pallets, i)
-                                        break
+                                local pok = lib.callback.await('vp_lumberjack:stacking:pickup', false)
+                                if pok then
+                                    VPL.ForkAttach(veh, np.ent)
+                                    carrying = np.ent
+                                    showPrompt(nil)
+                                    PlaySoundFrontend(-1, 'PICK_UP', 'HUD_FRONTEND_DEFAULT_SOUNDSET', true)
+                                    for i, p in ipairs(pallets) do
+                                        if p == np then
+                                            table.remove(pallets, i)
+                                            break
+                                        end
                                     end
                                 end
                             end
@@ -191,17 +194,23 @@ local function runLoop()
                         if nt then
                             showPrompt(locale('fork_drop'))
                             if IsControlJustReleased(0, Config.Fork.grabKey) then
+                                local targetEnt = carrying
                                 local ok, res = lib.callback.await('vp_lumberjack:stacking:drop', false, nt.index)
+                                -- Validacao de integridade pos-callback (evita race se job encerrou durante await)
+                                if not active or not targetEnt or not DoesEntityExist(targetEnt) then
+                                    return
+                                end
+
                                 if ok then
                                     nt.fill = res.fill
                                     nt.full = res.full
                                     dropped = dropped + 1
 
-                                    -- Calcula posição no trailer (empilhamento gradual)
+                                    -- Calcula posicao no trailer (empilhamento gradual)
                                     local slotOffset = (nt.fill - 1) * 1.5 - 1.5
                                     local dropC = GetOffsetFromEntityInWorldCoords(nt.ent, 0.0, slotOffset, 0.6)
-                                    VPL.ForkPlace(carrying, dropC, nt.heading)
-                                    placed[#placed + 1] = carrying
+                                    VPL.ForkPlace(targetEnt, dropC, nt.heading)
+                                    placed[#placed + 1] = targetEnt
                                     carrying = nil
                                     showPrompt(nil)
                                     PlaySoundFrontend(-1, 'Object_Dropped_Remote', 'GTAO_FM_Events_Soundset', true)
@@ -213,7 +222,7 @@ local function runLoop()
                                         refillPallets()
                                     end
                                 else
-                                    VPL.Notify('error', VPL.Err(res, { full = 'stack_full' }))
+                                    VPL.Notify('error', VPL.Err(res, { full = 'stack_full', no_pallet = 'fork_grab' }))
                                 end
                             end
                         else
@@ -245,7 +254,7 @@ local function setupStacking()
     SetBlipScale(yardBlip, 0.8)
     SetBlipAsShortRange(yardBlip, true)
     BeginTextCommandSetBlipName('STRING')
-    AddTextComponentSubstringPlayerName('Pátio de Empilhamento')
+    AddTextComponentSubstringPlayerName('Patio de Empilhamento')
     EndTextCommandSetBlipName(yardBlip)
 
     for i = 1, #Config.Stacking.trailerSpawns do
@@ -288,4 +297,8 @@ end)
 
 RegisterNetEvent('vp_lumberjack:client:jobEnded', function(jobKey)
     if jobKey == 'stacking' then teardownStacking() end
+end)
+
+AddEventHandler('onResourceStop', function(res)
+    if res == GetCurrentResourceName() then teardownStacking() end
 end)
