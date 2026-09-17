@@ -8,7 +8,7 @@ local watchdog = false
 
 --- Notificação curta.
 function VPL.Notify(ntype, key, ...)
-    lib.notify({ type = ntype, description = locale(key, ...) })
+    VPL.UI.Notify(ntype, locale(key, ...))
 end
 
 function VPL.Err(reason, map)

@@ -1,4 +1,4 @@
--- vp_lumberjack — Configuração central
+-- vp_lumberjack v3 — Configuração central (QBox / QBCore)
 -- 3 sub-jobs (corte / empilhamento / entrega). Pagamento ACUMULA e é pago só quando
 -- você DEVOLVE o veículo. Cancela por morte / distância / dano.
 -- Server-authoritative, sem DB (estado em runtime).
@@ -12,40 +12,79 @@ Config.Webhook = ''
 Config.RequireJob = false
 Config.JobName    = 'lumberjack'
 
--- Item ox_inventory exigido p/ cortar (ver README). Toras/pallets são server-side (não item).
+-- Item ox_inventory exigido p/ cortar. Toras/pallets são server-side (não item de inventário).
 Config.Items = { chainsaw = 'chainsaw' }
 
 -- Motosserra: som durante o corte + comando de volume.
--- O som padrão usa um native (placeholder). Pra som fiel, aponte VPL.PlayChainsaw
--- pro seu resource de áudio (xsound/InteractSound) — ver README.
 Config.Chainsaw = {
     volumeCommand = 'serravolume',   -- /serravolume 0-100
     defaultVolume = 70,
     loopMs        = 600,             -- re-trigger do som enquanto corta
-    sound = { set = 'DLC_HEIST_FLEECA_SOUNDSET', name = 'Drill_Pin_Break' }, -- placeholder native
+    sound = { set = 'DLC_HEIST_FLEECA_SOUNDSET', name = 'Drill_Pin_Break' },
 }
 
 --------------------------------------------------------------------------------
--- ASSETS — modelos NATIVOS do GTA por padrão (funcionam em qualquer servidor).
--- Se você tiver modelos custom (telehandler, empilhadeira, props de tora etc.),
--- basta trocar os nomes abaixo pelos seus — o código referencia só estes campos.
+-- DUAL ENGINE DE ASSETS: Modelos customizados (plt_lumberjack-streams) vs Nativos
+-- Se Config.UseCustomStreams = true, o script tenta usar os modelos e props de alta
+-- fidelidade do plt_lumberjack. Se o stream não estiver montado, cai suavemente no nativo.
 --------------------------------------------------------------------------------
+Config.UseCustomStreams = true
+
 Config.Assets = {
-    vehicles = {
-        telehandler = 'forklift',    -- corte: carrega as toras
-        forklift    = 'forklift',    -- empilhamento
-        truck       = 'flatbed',     -- entrega: carrega os pallets
-        trailer     = 'trailerlogs', -- pátio de empilhamento (alvo dos pallets)
+    -- Modelos customizados do plt_lumberjack-streams
+    custom = {
+        vehicles = {
+            telehandler = 'jcb',           -- Telehandler JCB
+            forklift    = 'pltforklift',    -- Empilhadeira Polat
+            truck       = 'pltpacker',      -- Caminhão Packer
+            trailer     = 'plttrflat',      -- Carreta Flatbed com rampas
+        },
+        props = {
+            chainsaw  = 'polat_lumberjack_chainsaw003',
+            tree      = 'polat_lumberjack_tree',
+            stump     = 'prop_tree_stump_01',
+            log       = 'polat_lumberjack_a1',
+            logs      = { 'polat_lumberjack_a1', 'polat_lumberjack_a2', 'polat_lumberjack_a3' },
+            woodpile  = 'polat_lumberjack_woodpile_1',
+            woodpile2 = 'polat_lumberjack_woodpile_2',
+            ramp      = 'polat_lumberjack_ramp001',
+        },
     },
-    props = {
-        chainsaw = 'prop_tool_consaw',   -- prop de motosserra na mão (cosmético)
-        log      = 'prop_log_01',        -- tora cortada (reservado p/ uso futuro)
-        woodpile = 'prop_woodpile_01a',  -- fardo de toras / pallet de lumber
-        tree     = 'prop_tree_pine_02',  -- árvore em pé
-        stump    = 'prop_tree_stump_01', -- toco
+    -- Modelos nativos do GTA (Fallback universal seguro)
+    native = {
+        vehicles = {
+            telehandler = 'forklift',
+            forklift    = 'forklift',
+            truck       = 'flatbed',
+            trailer     = 'trailerlogs',
+        },
+        props = {
+            chainsaw  = 'prop_tool_consaw',
+            tree      = 'prop_tree_pine_02',
+            stump     = 'prop_tree_stump_01',
+            log       = 'prop_log_01',
+            logs      = { 'prop_log_01', 'prop_log_02', 'prop_log_01' },
+            woodpile  = 'prop_woodpile_01a',
+            woodpile2 = 'prop_woodpile_01a',
+            ramp      = 'prop_ramp_01',
+        },
     },
     cutAnim = { dict = 'amb@world_human_hammering@male@base', clip = 'base' },
+    particles = { asset = 'core', name = 'ent_dst_wood_splinter' }
 }
+
+-- Metatabela de compatibilidade retroativa para Config.Assets.vehicles e Config.Assets.props
+Config.Assets.vehicles = setmetatable({}, {
+    __index = function(_, k)
+        return (VPL and VPL.GetAsset and VPL.GetAsset('vehicles', k)) or Config.Assets.native.vehicles[k]
+    end
+})
+
+Config.Assets.props = setmetatable({}, {
+    __index = function(_, k)
+        return (VPL and VPL.GetAsset and VPL.GetAsset('props', k)) or Config.Assets.native.props[k]
+    end
+})
 
 --------------------------------------------------------------------------------
 -- CENTRO DO JOB — capataz, blip, pontos de spawn de veículo e zona de devolução
@@ -71,8 +110,6 @@ Config.JobCenter = {
 --------------------------------------------------------------------------------
 Config.Cancel = {
     cancelOnDeath          = true,
-    -- Leash pelo VEÍCULO de trabalho (não pelo centro) — assim a Entrega pode ir longe,
-    -- mas você não pode abandonar sua máquina e sair andando.
     maxDistanceFromVehicle  = 200.0,   -- m a pé do veículo de trabalho → cancela
     warnDistanceFromVehicle = 150.0,   -- m → aviso antes de cancelar
     engineHealthMin        = 250.0,    -- abaixo disso (motor) cancela
@@ -84,47 +121,48 @@ Config.Cancel = {
 --------------------------------------------------------------------------------
 -- OS 3 SUB-JOBS — rótulos, veículo e tabela de pagamento (tudo pago server-side)
 --------------------------------------------------------------------------------
--- NOTA DE BALANCE: valores ajustados p/ ~$350–480/min por job (corte mais lento porém
--- estável; entrega aposta na distância). Calibre com seu servidor — são ponto de partida.
 Config.Jobs = {
     cutting = {
         label   = 'Corte de Árvores',
-        comment = 'Motosserra + transportar as toras ao stand com o telehandler.',
+        comment = 'Motosserra + derrubada física + transportar toras ao stand.',
         vehicle = 'telehandler',
-        pay     = { perTree = 700 },        -- $ por árvore cortada+entregue (pago na devolução)
+        pay     = { perTree = 700, perLog = 250 },
         order   = 1,
     },
     stacking = {
         label   = 'Empilhamento de Pallets',
         comment = 'Pegar pallets com a empilhadeira e encaixar nos trailers.',
         vehicle = 'forklift',
-        pay     = { perPallet = 200 },      -- $ por pallet encaixado no trailer
+        pay     = { perPallet = 200 },
         order   = 2,
     },
     delivery = {
         label   = 'Entrega de Lumber',
         comment = 'Levar os pallets até a obra com o caminhão. Mais longe = mais dinheiro.',
         vehicle = 'truck',
-        pay     = { perDelivery = 150, perKm = 55 },  -- por pallet: 150 + 55*distanceKm
+        pay     = { perDelivery = 150, perKm = 55 },
         order   = 3,
     },
 }
 
 --------------------------------------------------------------------------------
--- DETALHE POR JOB (refinado nas fases 2–4; já exposto p/ o framework)
+-- DETALHE POR JOB (refinado e expandido com a física do plt_lumberjack)
 --------------------------------------------------------------------------------
 
 -- Corte (Fase 2)
 Config.Cutting = {
-    fellDuration = 9000,            -- ms cortando o tronco até cair
-    fellMin      = 7000,            -- ms mínimo aceito pelo server (anti instant)
-    cutDuration  = 6000,            -- ms cortando a árvore caída em toras
-    interactRadius = 3.5,
-    logsPerTree  = { min = 2, max = 3 },
-    respawnMinutes = 20,
-    fellCheckRadius = 4.5,          -- raio à frente p/ checar veículo no caminho da queda
-    fellAnimTime = 1300,            -- ms da animação de queda da árvore
-    skillCheck = { 'easy', 'medium' },
+    fellDuration    = 8500,            -- ms cortando o tronco até iniciar queda
+    fellMin         = 6500,            -- ms mínimo aceito pelo server (anti instant)
+    fellSteps       = 28,              -- passos de rotação física da queda
+    fellAngle       = -85.0,           -- ângulo de tombamento no chão
+    fellAnimTime    = 1400,            -- ms da animação de queda da árvore
+    fellCheckRadius = 4.5,             -- raio à frente p/ checar veículo no caminho da queda
+    buckDuration    = 4500,            -- ms p/ desdobrar o tronco caído em toras
+    buckMin         = 3500,            -- ms mínimo aceito no server p/ desdobro
+    logsPerTree     = { min = 2, max = 3 },
+    interactRadius  = 3.5,
+    respawnMinutes  = 20,
+    skillCheck      = { 'easy', 'medium' },
     stand = { coords = vector4(-558.6, 5310.7, 73.6, 200.0), radius = 6.0, label = 'Stand de toras' },
     trees = {
         vector3(-583.1, 5306.4, 70.2), vector3(-595.7, 5318.9, 69.5),
@@ -136,25 +174,29 @@ Config.Cutting = {
 
 -- Empilhamento (Fase 3)
 Config.Stacking = {
-    liftDuration = 5000,
-    yard = { coords = vector3(-538.0, 5318.5, 73.5), radius = 14.0 },
-    palletSpawns = {                -- onde os pallets aparecem p/ pegar
+    liftDuration      = 4000,
+    yard              = { coords = vector3(-538.0, 5318.5, 73.5), radius = 18.0 },
+    palletSpawns      = {
         vector4(-545.0, 5314.0, 73.5, 200.0),
         vector4(-548.0, 5317.0, 73.5, 200.0),
         vector4(-551.0, 5320.0, 73.5, 200.0),
     },
-    trailerSpawns = {               -- trailers que recebem os pallets
+    trailerSpawns     = {
         vector4(-525.0, 5312.0, 73.5, 110.0),
         vector4(-522.0, 5316.0, 73.5, 110.0),
     },
     palletsPerTrailer = 4,
+    ramp = {
+        offset = vector3(0.0, -4.6, 0.0),
+        doorIndex = 5,
+    },
 }
 
 -- Entrega (Fase 4)
 Config.Delivery = {
-    unloadDuration = 5000,
+    unloadDuration = 4500,
     truckCapacity  = 4,
-    siteRadius     = 10.0,
+    siteRadius     = 12.0,
     sites = {
         { coords = vector4(-150.6, -959.7, 254.0, 250.0), distanceKm = 7.8, label = 'Obra — Maze Bank' },
         { coords = vector4(  85.4, -1958.7,  20.7, 320.0), distanceKm = 8.4, label = 'Obra — Cypress Flats' },
@@ -165,30 +207,28 @@ Config.Delivery = {
 }
 
 --------------------------------------------------------------------------------
--- GARFO (telehandler/empilhadeira) — operação real, reusado pelas fases 2–4.
--- Dirigir o veículo até alinhar o GARFO com a zona marcada, [E] p/ pegar/soltar.
+-- GARFO (telehandler/empilhadeira) — operação real com tick rate dinâmico (0.00ms idle).
 --------------------------------------------------------------------------------
 Config.Fork = {
     grabKey       = 38,                       -- E
-    alignDistance = 2.0,                       -- m: garfo até o marcador
-    alignHeading  = 40.0,                      -- graus de tolerância de heading no drop
-    forkBone      = 'forks',                   -- bone do garfo (fallback p/ offset se não existir)
-    forkOffset    = vector3(0.0, 1.3, 0.1),    -- fallback: posição do garfo a partir do veículo
-    loadAttach    = vector3(0.0, 1.1, 0.25),   -- onde a carga gruda no garfo
-    markerSize    = vector3(2.5, 2.5, 1.0),
-    markerColor   = { r = 60, g = 200, b = 90, a = 140 },
+    alignDistance = 2.4,                      -- m: garfo até o marcador
+    alignHeading  = 45.0,                     -- graus de tolerância de heading no drop
+    forkBone      = 'forks',                  -- bone do garfo (fallback p/ offset se não existir)
+    forkOffset    = vector3(0.0, 1.3, 0.1),   -- fallback: posição do garfo a partir do veículo
+    loadAttach    = vector3(0.0, 1.1, 0.25),  -- onde a carga gruda no garfo
+    markerSize    = vector3(2.5, 2.5, 0.8),
+    markerColor   = { r = 40, g = 190, b = 80, a = 140 },
 }
 
 --------------------------------------------------------------------------------
--- ROUPA DE TRABALHO (Fase 5) — componentes de ped (ajuste por modelo se quiser)
+-- ROUPA DE TRABALHO (Fase 5) — componentes de ped
 --------------------------------------------------------------------------------
 Config.Workwear = {
-    -- mp_m_freemode_01 (masc.) / mp_f_freemode_01 (fem.)
     male = {
-        { component = 11, drawable = 250, texture = 0 }, -- torso (jaqueta)
-        { component = 8,  drawable = 15,  texture = 0 }, -- undershirt
-        { component = 4,  drawable = 100, texture = 0 }, -- pernas
-        { component = 6,  drawable = 25,  texture = 0 }, -- sapatos
+        { component = 11, drawable = 250, texture = 0 },
+        { component = 8,  drawable = 15,  texture = 0 },
+        { component = 4,  drawable = 100, texture = 0 },
+        { component = 6,  drawable = 25,  texture = 0 },
     },
     female = {
         { component = 11, drawable = 250, texture = 0 },
@@ -202,8 +242,8 @@ Config.Workwear = {
 -- Cooldowns (ms) — anti-flood (server-side)
 --------------------------------------------------------------------------------
 Config.Cooldowns = {
-    startJob     = 4000,
+    startJob      = 4000,
     returnVehicle = 2000,
-    giveTool     = 5000,
-    action       = 1200,    -- corte/lift/unload genérico
+    giveTool      = 5000,
+    action        = 1200,
 }

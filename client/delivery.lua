@@ -37,9 +37,13 @@ end
 -- Descarga
 --------------------------------------------------------------------------------
 local function unloadFlow()
-    local done = lib.progressBar({
-        duration = Config.Delivery.unloadDuration, label = locale('deliv_unloading'),
-        useWhileDead = false, canCancel = true, disable = { move = true, car = true, combat = true },
+    local done = VPL.UI.ProgressBar({
+        duration = Config.Delivery.unloadDuration,
+        label = locale('deliv_unloading'),
+        icon = 'dolly',
+        useWhileDead = false,
+        canCancel = true,
+        disable = { move = true, car = true, combat = true },
     })
     if not done then return end
 

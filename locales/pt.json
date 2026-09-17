@@ -1,51 +1,39 @@
 {
     "foreman_target": "Falar com o capataz",
     "return_target": "Devolver veículo e finalizar",
-
     "menu_title": "Lenhador — Serraria",
     "menu_get_chainsaw": "Pegar motosserra",
     "menu_wear_work": "Vestir uniforme",
     "menu_wear_casual": "Roupa casual",
     "menu_cancel_job": "Cancelar o serviço (perde o acumulado)",
-
     "tool_received": "Você pegou uma motosserra.",
     "tool_have_already": "Você já tem uma motosserra.",
     "no_job": "Você não tem autorização pra esse serviço.",
     "center_far": "Chegue mais perto da serraria.",
-
     "cooldown": "Calma aí.",
     "action_failed": "Não rolou.",
-
     "already_working": "Você já está em serviço.",
     "spawns_full": "Todos os pontos de spawn estão ocupados.",
-
     "job_started_cutting": "Serviço de corte iniciado. Uma árvore foi marcada no GPS. Devolva o telehandler pra receber.",
     "job_started_stacking": "Serviço de empilhamento iniciado. Carregue os pallets nos trailers. Devolva a empilhadeira pra receber.",
     "job_started_delivery": "Serviço de entrega iniciado. Uma obra foi marcada no GPS. Devolva o caminhão pra receber.",
-
     "job_paid": "Serviço concluído — você recebeu %s.",
     "job_no_earn": "Serviço encerrado sem ganhos.",
-
     "no_session": "Você não está em serviço.",
     "return_far": "Leve o veículo até a zona de devolução marcada.",
     "vehicle_gone": "O veículo de trabalho sumiu — serviço encerrado.",
-
     "cancel_died": "!!! Serviço cancelado porque você morreu.",
     "cancel_away": "!!! Serviço cancelado: você se afastou demais da serraria.",
     "cancel_damage": "!!! Serviço cancelado: o veículo recebeu dano demais.",
-
     "warn_distance": "ATENÇÃO: você está se afastando demais da serraria!",
     "warn_damage": "ATENÇÃO: o veículo de trabalho está muito danificado!",
-
     "wear_work": "Você vestiu o uniforme.",
     "wear_casual": "Você voltou pra roupa casual.",
-
     "tree_target_cut": "Derrubar árvore",
     "need_get_out": "Saia do veículo pra cortar a árvore.",
     "need_chainsaw": "Você precisa de uma motosserra.",
     "cut_too_far": "Você está longe demais da árvore.",
     "cut_not_cuttable": "Essa árvore já foi cortada.",
-    "no_session": "Você não está em serviço.",
     "cut_felling": "Derrubando a árvore...",
     "cut_logs": "Cortando em toras...",
     "cut_cancelled": "Você parou o corte.",
@@ -54,21 +42,23 @@
     "cut_load_ready": "Toras prontas. Carregue no garfo do telehandler e leve ao stand.",
     "cut_paid": "Toras entregues no stand — +%s (pago na devolução).",
     "stand_far": "Leve as toras até o stand marcado.",
-
     "fork_grab": "[E] Pegar a carga com o garfo",
     "fork_drop": "[E] Soltar a carga na zona",
-
     "stack_paid": "Pallet no trailer — +%s (pago na devolução).",
     "stack_full": "Esse trailer já está cheio.",
     "stack_done": "Todos os trailers estão cheios. Devolva a empilhadeira pra receber.",
-
     "deliv_target": "Descarregar pallet",
     "deliv_unloading": "Descarregando pallet...",
     "deliv_paid": "Pallet entregue na obra — +%s (pago na devolução).",
     "deliv_done": "Carga entregue! Devolva o caminhão pra receber.",
     "site_far": "Chegue mais perto da obra pra descarregar.",
     "truck_far": "Traga o caminhão pra perto da obra.",
-
     "saw_vol_bad": "Use um número de 0 a 100. Ex.: /%s 60",
-    "saw_vol_set": "Volume da motosserra ajustado para %s."
+    "saw_vol_set": "Volume da motosserra ajustado para %s.",
+    "ramp_toggle": "Baixar / Subir Rampas da Carreta",
+    "ramp_down": "Rampas da carreta baixadas.",
+    "ramp_up": "Rampas da carreta recolhidas.",
+    "cut_bucking": "Serrando o tronco em toras...",
+    "buck_target": "Serrar tronco em toras",
+    "buck_ready": "Tronco desdobrado! Carregue as toras com o telehandler até o stand."
 }

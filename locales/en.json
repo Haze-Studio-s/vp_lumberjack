@@ -1,51 +1,39 @@
 {
     "foreman_target": "Talk to the foreman",
     "return_target": "Return vehicle & finish",
-
     "menu_title": "Lumberjack — Sawmill",
     "menu_get_chainsaw": "Get a chainsaw",
     "menu_wear_work": "Wear workwear",
     "menu_wear_casual": "Casual clothes",
     "menu_cancel_job": "Cancel the job (lose pending pay)",
-
     "tool_received": "You grabbed a chainsaw.",
     "tool_have_already": "You already have a chainsaw.",
     "no_job": "You're not authorized for this job.",
     "center_far": "Get closer to the sawmill.",
-
     "cooldown": "Slow down.",
     "action_failed": "That didn't work.",
-
     "already_working": "You're already working.",
     "spawns_full": "All vehicle spawn points are full.",
-
     "job_started_cutting": "Cutting job started. A tree is marked on your GPS. Return the telehandler to get paid.",
     "job_started_stacking": "Stacking job started. Load the pallets onto trailers. Return the forklift to get paid.",
     "job_started_delivery": "Delivery job started. A construction is marked on your GPS. Return the truck to get paid.",
-
     "job_paid": "Job done — you received %s.",
     "job_no_earn": "Job ended with no earnings.",
-
     "no_session": "You're not working.",
     "return_far": "Bring the vehicle to the marked return zone.",
     "vehicle_gone": "The work vehicle is gone — job ended.",
-
     "cancel_died": "!!! Job cancelled because you died.",
     "cancel_away": "!!! Job cancelled: you went too far from the sawmill.",
     "cancel_damage": "!!! Job cancelled: the vehicle took too much damage.",
-
     "warn_distance": "WARNING: you're getting too far from the sawmill!",
     "warn_damage": "WARNING: the work vehicle is badly damaged!",
-
     "wear_work": "You put on the workwear.",
     "wear_casual": "You changed back to casual clothes.",
-
     "tree_target_cut": "Cut down tree",
     "need_get_out": "Get out of the vehicle to cut the tree.",
     "need_chainsaw": "You need a chainsaw.",
     "cut_too_far": "You're too far from the tree.",
     "cut_not_cuttable": "This tree was already cut.",
-    "no_session": "You're not working.",
     "cut_felling": "Felling the tree...",
     "cut_logs": "Cutting into logs...",
     "cut_cancelled": "You stopped cutting.",
@@ -54,21 +42,23 @@
     "cut_load_ready": "Logs ready. Load them onto the telehandler forks and bring them to the stand.",
     "cut_paid": "Logs delivered to the stand — +%s (paid on return).",
     "stand_far": "Bring the logs to the marked stand.",
-
     "fork_grab": "[E] Grab the load with the forks",
     "fork_drop": "[E] Drop the load in the zone",
-
     "stack_paid": "Pallet on the trailer — +%s (paid on return).",
     "stack_full": "That trailer is already full.",
     "stack_done": "All trailers are full. Return the forklift to get paid.",
-
     "deliv_target": "Unload pallet",
     "deliv_unloading": "Unloading pallet...",
     "deliv_paid": "Pallet delivered to the site — +%s (paid on return).",
     "deliv_done": "Load delivered! Return the truck to get paid.",
     "site_far": "Get closer to the construction to unload.",
     "truck_far": "Bring the truck closer to the construction.",
-
     "saw_vol_bad": "Use a number from 0 to 100. e.g. /%s 60",
-    "saw_vol_set": "Chainsaw volume set to %s."
+    "saw_vol_set": "Chainsaw volume set to %s.",
+    "ramp_toggle": "Lower / Raise Trailer Ramps",
+    "ramp_down": "Trailer ramps lowered.",
+    "ramp_up": "Trailer ramps raised.",
+    "cut_bucking": "Bucking log into pieces...",
+    "buck_target": "Saw trunk into logs",
+    "buck_ready": "Logs ready! Load them with the telehandler to the stand."
 }

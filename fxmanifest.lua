@@ -4,7 +4,7 @@ lua54 'yes'
 
 name 'vp_lumberjack'
 author 'vinicius3232'
-version '2.0.0'
+version '3.0.0'
 description 'Job de lenhador (QBox) — 3 sub-jobs (corte/empilhamento/entrega), operação de garfo, pagamento na devolução do veículo, cancelamento por morte/distância/dano. Server-authoritative, sem DB, assets nativos.'
 
 -- @ox_lib/init.lua SEMPRE primeiro no shared (CLAUDE.md regra 10)
@@ -17,6 +17,7 @@ shared_scripts {
 -- framework (sessão/cancelamento/devolução) antes dos módulos de cada job.
 -- Os módulos cutting/stacking/delivery entram conforme as fases 2–4.
 client_scripts {
+    'client/ui.lua',
     'client/framework.lua',
     'client/fork.lua',
     'client/polish.lua',

@@ -1,38 +1,56 @@
-# vp_lumberjack
+# vp_lumberjack (v3.0.0)
 
-Job de **lenhador** para QBox. Três sub-jobs com **operação de garfo** (empilhadeira/
-telehandler), **pagamento acumulado pago só na devolução do veículo** e **cancelamento por
-morte / distância / dano**. Server-authoritative, **sem DB** (estado em runtime), **sem NUI
-HTML** (painel via `lib.registerContext`). 100% **assets nativos do GTA**.
+Job de **lenhador de alto desempenho** para QBox / QBCore. Três sub-jobs imersivos com **física realista de queda**, **desdobro de toras**, **operação de garfo** (telehandler/empilhadeira), **controle de rampas de carreta**, **pagamento acumulado pago na devolução do veículo** e **cancelamento preventivo por morte / distância / dano**.
 
-Stack: qbx_core 1.23 · ox_lib 3.32 · ox_inventory 2.44 · ox_target · qbx_vehiclekeys.
+Server-authoritative, sem DB (estado volátil em runtime), **Dual-Asset Engine** (suporta assets customizados do `plt_lumberjack-streams` com fallback suave para nativos do GTA) e **interface padronizada com `lation_ui`** (com fallback automático para `ox_lib`).
+
+Stack: `qbx_core` · `ox_lib` · `ox_inventory` · `ox_target` · `qbx_vehiclekeys` · `lation_ui` (opcional).
 
 ---
 
-## Como joga
+## 🌲 Visão Geral dos 3 Sub-Jobs
 
-Fale com o **capataz** na serraria (Paleto Forest) → painel escolhe 1 dos 3 serviços.
-Cada serviço **spawna o veículo certo** e te dá a chave. O dinheiro **acumula** e só cai
-quando você **devolve o veículo** na zona marcada. Morrer, se afastar demais do veículo de
-trabalho ou detonar o veículo **cancela o serviço e perde o acumulado**.
+Fale com o **capataz** na serraria de Paleto Forest → menu interativo escolhe 1 dos 3 serviços.
+Cada serviço **spawna o veículo apropriado**, entrega a chave e inicia o rastreio da sessão. O pagamento **acumula no servidor** e é creditado integralmente quando você **devolve o veículo** na zona demarcada da serraria.
 
-| Serviço | Veículo | Fluxo |
+| Serviço | Veículo Padrão | Fluxo Técnico e Operacional |
 |---|---|---|
-| **① Corte** | telehandler | Motosserra (com som) → árvore **cai** (checa obstáculo) → cortar em toras → **garfo** carrega ao stand → devolve |
-| **② Empilhamento** | empilhadeira | Pegar pallet do pátio com o **garfo** → encaixar no trailer (posição + heading) → devolve |
-| **③ Entrega** | caminhão | Caminhão carregado → obra aleatória (**+$ quanto mais longe**) → descarregar pallet a pallet → devolve |
+| **① Corte** | Telehandler (`jcb` / `forklift`) | Motosserra com som e partículas de serragem → árvore tomba com **física suave (28 passos)** → desdobro do tronco em toras no chão → **garfo do telehandler** carrega toras até o stand → devolve veículo. |
+| **② Empilhamento** | Empilhadeira (`pltforklift` / `forklift`) | Pegar pallets com o garfo → acionar rampas do reboque → carregar e alinhar pallets na carreta → devolve veículo. |
+| **③ Entrega** | Caminhão (`pltpacker` / `flatbed`) | Caminhão carregado com pallets → obra aleatória no mapa (**frete dinâmico por km rodado**) → descarregar pallets na zona demarcada → devolve veículo. |
 
-**Operação de garfo:** dirija o telehandler/empilhadeira até o **garfo** entrar na zona verde,
-**[E]** pega; leve até o destino, alinhe o heading, **[E]** solta.
+> **Operação de Garfo (Resmon 0.00ms em repouso):** Aproxime o telehandler ou empilhadeira da zona verde; o sistema acorda dinamicamente, exibe TextUI e permite pressionar **[E]** para pegar; no destino, alinhe a direção e aperte **[E]** para soltar com som mecânico de trava.
 
 ---
 
-## Instalação
+## ⚡ Diferenciais de Engenharia da Versão 3.0.0
 
-### 1. Item no ox_inventory (OBRIGATÓRIO — só 1)
+1. **Padrão Visual `lation_ui`:**
+   - Camada bridge em `client/ui.lua` roteando notificações, TextUI, barras de progresso e menus de contexto no `lation_ui`.
+   - Se o recurso `lation_ui` não estiver em execução ou for reiniciado, a interface degrada automaticamente para `ox_lib` sem erros de script.
 
+2. **Física Realista de Queda e Partículas:**
+   - Incorporado o algoritmo de tombamento gradual com detecção de obstáculos e partículas de serragem (`ent_dst_wood_splinter`).
+   - O tronco caído é desdobrado no solo através do `ox_target`, gerando toras físicas para coleta com o telehandler.
+
+3. **Logística de Carretas e Rampas:**
+   - Carretas com rampas traseiras operáveis por `ox_target` (`Baixar / Subir Rampas da Carreta`) e som hidráulico.
+   - Posicionamento tridimensional escalonado dos pallets na prancha.
+
+4. **Performance Cravada em 0.00ms:**
+   - Eliminação completa de loops de verificação de distância com `Wait(0)`.
+   - Implementação de tick rate dinâmico que dorme em repouso (`Wait(1000)`) e só desperta no raio de manobra (< 8.0m).
+
+5. **Dual-Asset Engine (Custom vs Nativo):**
+   - Configurado para reconhecer os veículos e props do `plt_lumberjack-streams` (`jcb`, `pltforklift`, `plttrflat`, `pltpacker`, `polat_lumberjack_*`).
+   - Caso o servidor não possua esses assets montados, o script degrada suavemente para modelos nativos do GTA sem crashes.
+
+---
+
+## 🛠️ Instalação e Configuração
+
+### 1. Item no `ox_inventory` (Obrigatório)
 Em `resources/[ox]/ox_inventory/data/items.lua`:
-
 ```lua
 ['chainsaw'] = {
     label = 'Motosserra',
@@ -43,74 +61,51 @@ Em `resources/[ox]/ox_inventory/data/items.lua`:
 },
 ```
 
-> As toras e pallets são **estado de servidor** (não itens) — só a motosserra é item.
-
-### 2. server.cfg
-
-Está em `resources/[standalone]/`. Se já existe `ensure [standalone]` (ensure de grupo),
-sobe automático. Senão: `ensure vp_lumberjack`. Locale pt: `setr ox:locale pt`.
-
----
-
-## Assets
-
-Usa **modelos nativos do GTA** (`forklift`, `flatbed`, `trailerlogs`, `prop_woodpile_01a`,
-`prop_tree_pine_02`, `prop_tree_stump_01`, `prop_tool_consaw`...). Funciona em qualquer
-servidor, sem depender de nenhum recurso externo.
-
-Se você tiver **modelos custom** (um telehandler/empilhadeira melhor, props de tora etc.),
-basta trocar os nomes em `Config.Assets` — o código referencia só esses campos. Modelos
-inválidos **degradam sem crashar** (o prop simplesmente não aparece).
-
----
-
-## Calibração (IMPORTANTE) — `Config.Fork`
-
-A posição do garfo varia por modelo de veículo. Se o garfo não "pegar" a carga, ajuste,
-olhando o marcador verde no jogo:
-
-- `forkBone` — nome do bone do garfo (`forks`; cai pro offset abaixo se não existir).
-- `forkOffset` — posição do garfo a partir do veículo (fallback).
-- `alignDistance` / `alignHeading` — tolerância de posição/direção pra pegar/soltar.
-- `loadAttach` — onde a carga gruda no garfo.
-
-Ative `Config.Debug = true` pra ver as zonas do ox_target.
-
----
-
-## Economia (ponto de partida — calibre)
-
-`Config.Jobs[*].pay`: corte `perTree=700`; empilhamento `perPallet=200`;
-entrega `perDelivery=150 + perKm=55×distanceKm` por pallet. Alvo ~$350–480/min por serviço.
-
-## Comandos
-
-- `/serravolume 0-100` — volume do som da motosserra (persiste por jogador).
-  O som padrão é um *placeholder* nativo — aponte `VPL.PlayChainsaw` (em `client/polish.lua`)
-  pro seu resource de áudio (xsound/InteractSound) pra som fiel.
-
----
-
-## Segurança
-
-Todo callback passa por `server/security.lua`: `IsValidSource` + cooldown + **proximity
-server-side** + token `BeginAuth/ConsumeAuth` (anti instant/auto-clicker) no corte.
-Pagamento sempre calculado no server; `distanceKm` da entrega é fixo do config (nunca do
-client). `LogSuspicious` + webhook opcional (`Config.Webhook`).
-
-## Estrutura
-
-```
-config/config.lua           tudo configurável
-shared/utils.lua            VPL: RandInt, Money, HeadingDiff
-client/  framework · fork · polish · cutting · stacking · delivery · main
-server/  security · main · framework · cutting · stacking · delivery
+### 2. Ativação no `server.cfg`
+```cfg
+ensure [standalone]
+# ou individualmente:
+ensure vp_lumberjack
+setr ox:locale pt
 ```
 
-`framework` = sessão (spawn veículo, acumula pay, paga na devolução, watchdog de
-cancelamento). `fork` = operação de garfo reutilizável. Cada `cutting/stacking/delivery`
-escuta `vp_lumberjack:client:jobStarted/jobEnded`.
+### 3. Comandos Úteis
+- `/serravolume 0-100` — Ajusta o volume do áudio da motosserra (salvo na sessão do jogador).
 
-## Dependências
+---
 
-`ox_lib`, `ox_target`, `ox_inventory`, `qbx_core`, `qbx_vehiclekeys`. **Sem oxmysql** (sem DB).
+## 🛡️ Segurança e Server-Authoritative
+
+- **Tokens de Ação:** O início do corte emite um token temporal que valida o tempo mínimo de serragem (`fellMin`), neutralizando injeção de triggers rápidos.
+- **Validação Física de Distância:** Todas as entregas e descargas conferem a distância tridimensional no servidor (`Security.DistanceTo`).
+- **Fail-Closed:** Acúmulo de pagamento em memória no servidor, liberado estritamente na devolução física do veículo de trabalho.
+
+---
+
+## 📁 Estrutura de Arquivos
+
+```
+config/
+  config.lua         -- Configuração global, assets, economia e tempos
+locales/
+  pt.json            -- Localização completa em Português do Brasil
+  en.json            -- Localização em Inglês
+shared/
+  utils.lua          -- Resolução dinâmica de assets (GetAsset), formatação
+client/
+  ui.lua             -- Bridge unificada lation_ui / ox_lib
+  framework.lua      -- Gerenciamento de sessão, watchdog e cancelamento
+  fork.lua           -- Operação de garfo com tick rate dinâmico
+  cutting.lua        -- Física de queda, partículas e desdobro de toras
+  stacking.lua       -- Empilhamento de pallets e rampas de carreta
+  delivery.lua       -- Transporte e descarga nas obras
+  polish.lua         -- Áudio e polimento da motosserra
+  main.lua           -- NPC capataz e menu principal
+server/
+  security.lua       -- Auditoria de proximidade, tokens e anti-exploit
+  framework.lua      -- Sessões de trabalho e liberação de pagamento
+  cutting.lua        -- Estado autoritativo das árvores e toras
+  stacking.lua       -- Controle de capacidade dos trailers
+  delivery.lua       -- Geração de rotas e cálculo de frete por km
+  main.lua           -- Eventos de cancelamento e concessão de ferramentas
+```

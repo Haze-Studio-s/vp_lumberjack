@@ -76,8 +76,7 @@ local function openMenu()
         opts[#opts + 1] = { title = locale('menu_cancel_job'), icon = 'ban', onSelect = function() VPL.CancelJob('manual') end }
     end
 
-    lib.registerContext({ id = 'vp_lumberjack_menu', title = locale('menu_title'), options = opts })
-    lib.showContext('vp_lumberjack_menu')
+    VPL.UI.OpenMenu('vp_lumberjack_menu', locale('menu_title'), opts)
 end
 
 --------------------------------------------------------------------------------
