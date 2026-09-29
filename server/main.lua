@@ -8,12 +8,46 @@ function VPL.GetPlayer(src)
 end
 
 --- Pagamento 100% server-side. Valor sempre calculado no server.
+--- Padrão canônico QBox / aust_banking v3 Fail-Closed e ox_inventory.
 function VPL.Pay(src, amount, reason)
+    amount = math.floor(tonumber(amount) or 0)
     if amount <= 0 then return false end
     local p = VPL.GetPlayer(src)
     if not p then return false end
-    p.Functions.AddMoney('cash', amount, reason or 'vp_lumberjack')
-    return true
+
+    local account = Config.PayoutAccount or 'bank'
+    local cid = p.PlayerData and p.PlayerData.citizenid
+
+    if account == 'bank' and cid then
+        if type(GetResourceState) == 'function' and GetResourceState('aust_banking') == 'started' then
+            local optId = ('lumberjack:pay:%s:%d:%d'):format(cid, amount, os.time())
+            local ok, res = pcall(function()
+                return exports['aust_banking']:Credit({
+                    target = cid,
+                    amount = amount,
+                    reason = reason or 'Salário da Serraria (vp_lumberjack)',
+                    operationId = optId
+                })
+            end)
+            if ok and res and res.success then
+                return true
+            end
+            print(('[vp_lumberjack] Falha no crédito aust_banking para cid %s (optId: %s). Abortando para evitar duplo pagamento.'):format(cid, optId))
+            return false
+        end
+        return p.Functions.AddMoney('bank', amount, reason or 'vp_lumberjack') and true or false
+    end
+
+    -- Dinheiro físico (item 'money' do ox_inventory)
+    if type(GetResourceState) == 'function' and GetResourceState('ox_inventory') == 'started' then
+        local ok, res = pcall(function()
+            return exports.ox_inventory:AddItem(src, 'money', amount)
+        end)
+        if ok and res then return true end
+    end
+
+    -- Fallback core
+    return p.Functions.AddMoney('cash', amount, reason or 'vp_lumberjack') and true or false
 end
 
 --- @return boolean

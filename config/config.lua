@@ -11,6 +11,7 @@ Config.Webhook = ''
 -- Acesso ao job. RequireJob=false → aberto a todos (bico). true → exige job 'lumberjack'.
 Config.RequireJob = false
 Config.JobName    = 'lumberjack'
+Config.PayoutAccount = 'bank'  -- 'bank' (aust_banking v3) ou 'cash' (ox_inventory)
 
 -- Item ox_inventory exigido p/ cortar. Toras/pallets são server-side (não item de inventário).
 Config.Items = { chainsaw = 'chainsaw' }
