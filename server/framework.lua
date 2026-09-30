@@ -88,6 +88,7 @@ lib.callback.register('vp_lumberjack:startJob', function(src, jobKey)
     if not veh then return false, 'spawnfail' end
 
     Sessions[src] = {
+        sessionId   = ('%s_%d_%d'):format(jobKey, os.time(), math.random(1000, 9999)),
         job         = jobKey,
         earnings    = 0,
         travelKm    = 0,
@@ -100,7 +101,7 @@ lib.callback.register('vp_lumberjack:startJob', function(src, jobKey)
 end)
 
 --------------------------------------------------------------------------------
--- Devolver veiculo e finalizar (paga o acumulado)
+-- Devolver veiculo e finalizar (paga o acumulado de forma autoritativa e transacional)
 --------------------------------------------------------------------------------
 lib.callback.register('vp_lumberjack:returnVehicle', function(src)
     if not Security.IsValidSource(src) then return false end
@@ -120,13 +121,25 @@ lib.callback.register('vp_lumberjack:returnVehicle', function(src)
     end
     if #(GetEntityCoords(s.vehicle) - rz.coords) > rz.radius + 2.0 then return false, 'return_far' end
 
-    -- Previne reentrancia de pagamento: marca e retira a sessao ANTES do pagamento
-    s.finishing = true
-    local earnings = s.earnings
+    local earnings = s.earnings or 0
     local km = s.travelKm or 0
     local jobName = s.job
     local veh = s.vehicle
+    local sessionId = s.sessionId or tostring(os.time())
+    local paid = true
 
+    -- Atomicidade e Fail-Closed: se houver valor acumulado, o crédito bancário/físico DEVE suceder
+    -- ANTES de destruirmos a entidade e o registro da sessão.
+    if earnings > 0 then
+        local payRef = ('return:%s:%s'):format(jobName, sessionId)
+        paid = VPL.Pay(src, earnings, 'vp_lumberjack-' .. jobName, payRef)
+        if not paid then
+            lib.print.error(('[vp_lumberjack] Falha no crédito de $%s para o jogador src=%s na devolução. Mantendo sessão e veículo para retry.'):format(earnings, src))
+            return false, 'payment_failed'
+        end
+    end
+
+    s.finishing = true
     Sessions[src] = nil
     Security.ClearPlayer(src)
     TriggerEvent('vp_lumberjack:server:onSessionEnd', src, jobName)
@@ -135,11 +148,7 @@ lib.callback.register('vp_lumberjack:returnVehicle', function(src)
         DeleteEntity(veh)
     end
 
-    if earnings > 0 then
-        VPL.Pay(src, earnings, 'vp_lumberjack-' .. jobName)
-    end
-
-    return true, { earnings = earnings, km = km, job = jobName }
+    return true, { earnings = earnings, km = km, job = jobName, paid = paid }
 end)
 
 --------------------------------------------------------------------------------

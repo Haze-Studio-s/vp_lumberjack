@@ -13,6 +13,11 @@ Config.RequireJob = false
 Config.JobName    = 'lumberjack'
 Config.PayoutAccount = 'bank'  -- 'bank' (aust_banking v3) ou 'cash' (ox_inventory)
 
+-- Integrações do Ecossistema
+Config.Integrations = {
+    aust_banking = true, -- true: usa aust_banking v3 com ledger contábil, idempotência e fail-closed
+}
+
 -- Item ox_inventory exigido p/ cortar. Toras/pallets são server-side (não item de inventário).
 Config.Items = { chainsaw = 'chainsaw' }
 
