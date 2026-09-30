@@ -9,12 +9,17 @@ end
 
 local _opSeq = 0
 
---- Sanitiza e limita o identificador de operação
+--- Sanitiza e limita o identificador de operação (djb2, máx 64 chars)
 local function normalizeOpId(raw)
     if type(raw) ~= 'string' then return nil end
     local clean = raw:gsub('[^%w%-_:]', '_')
     if #clean == 0 then return nil end
-    if #clean > 128 then clean = clean:sub(1, 128) end
+    if #clean > 64 then
+        local head = clean:sub(1, 55)
+        local h = 5381
+        for i = 1, #clean do h = ((h * 33) ~ string.byte(clean, i)) & 0xFFFFFFFF end
+        clean = head .. '_' .. ('%08x'):format(h)
+    end
     return clean
 end
 
@@ -141,11 +146,13 @@ function VPL.Pay(src, amount, reason, customRef)
             local opId = makeOpId('pay', cid, customRef)
             local ok, res = pcall(function()
                 return exports['aust_banking']:Credit({
-                    citizenid = cid,
-                    amount = cleanAmount,
-                    reason = safeReason,
-                    operationId = opId,
-                    source = 'vp_lumberjack'
+                    citizenid    = cid,
+                    amount       = cleanAmount,
+                    reason       = safeReason,
+                    note         = safeReason,
+                    operationId  = opId,
+                    operation_id = opId,
+                    source       = 'vp_lumberjack',
                 })
             end)
 
@@ -167,7 +174,29 @@ function VPL.Pay(src, amount, reason, customRef)
             return exports.ox_inventory:CanCarryItem(src, 'money', cleanAmount)
         end)
         if not okCarry or not canCarry then
-            lib.print.warn(('[vp_lumberjack] Jogador src=%s não possui capacidade no inventário para carregar $%s em espécie.'):format(src, cleanAmount))
+            lib.print.warn(('[vp_lumberjack] Jogador src=%s sem espaço; overflow cash->bank.'):format(src))
+            -- Overflow: creditar no banco
+            if cid and type(GetResourceState) == 'function' and GetResourceState('aust_banking') == 'started' then
+                local useAust2 = not Config.Integrations or Config.Integrations.aust_banking ~= false
+                if useAust2 then
+                    local ovId = makeOpId('overflow', cid, customRef)
+                    local ovReason = safeReason .. ' [overflow cash->bank]'
+                    local ok2, res2 = pcall(function()
+                        return exports['aust_banking']:Credit({
+                            citizenid    = cid,
+                            amount       = cleanAmount,
+                            reason       = ovReason,
+                            note         = ovReason,
+                            operationId  = ovId,
+                            operation_id = ovId,
+                            source       = 'vp_lumberjack',
+                        })
+                    end)
+                    if ok2 and (res2 == true or (type(res2) == 'table' and (res2.ok == true or res2.success == true))) then
+                        return true
+                    end
+                end
+            end
             return false
         end
 
@@ -221,11 +250,13 @@ function VPL.RemoveMoney(src, amount, account, reason, customRef)
             local opId = makeOpId('debit', cid, customRef)
             local ok, res = pcall(function()
                 return exports['aust_banking']:Debit({
-                    citizenid = cid,
-                    amount = cleanAmount,
-                    reason = safeReason,
-                    operationId = opId,
-                    source = 'vp_lumberjack'
+                    citizenid    = cid,
+                    amount       = cleanAmount,
+                    reason       = safeReason,
+                    note         = safeReason,
+                    operationId  = opId,
+                    operation_id = opId,
+                    source       = 'vp_lumberjack',
                 })
             end)
 
