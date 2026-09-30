@@ -4,18 +4,25 @@ lua54 'yes'
 
 name 'vp_lumberjack'
 author 'vinicius3232'
-version '3.0.0'
-description 'Job de lenhador (QBox) — 3 sub-jobs (corte/empilhamento/entrega), operação de garfo, pagamento na devolução do veículo, cancelamento por morte/distância/dano. Server-authoritative, sem DB, assets nativos.'
+version '3.1.0'
+description 'Job de lenhador (QBox) — 3 sub-jobs (corte/empilhamento/entrega), maquinário pesado e telehandler JCB, carreta florestal, serraria e motosserras customizadas. Server-authoritative, aust_banking v3 fail-closed.'
 
--- @ox_lib/init.lua SEMPRE primeiro no shared (CLAUDE.md regra 10)
+data_file 'DLC_ITYP_REQUEST' 'stream/polat_lumberjack_tree.ytyp'
+data_file 'DLC_ITYP_REQUEST' 'stream/polat_lumberjack_ramp001.ytyp'
+data_file 'DLC_ITYP_REQUEST' 'stream/polat_lumberjack_chainsaw003.ytyp'
+data_file 'DLC_ITYP_REQUEST' 'stream/[yMap]/rotto_plt_objects.ytyp'
+
+data_file 'HANDLING_FILE' 'data/handling.meta'
+data_file 'VEHICLE_METADATA_FILE' 'data/vehicles.meta'
+data_file 'CARCOLS_FILE' 'data/carcols.meta'
+data_file 'VEHICLE_VARIATION_FILE' 'data/carvariations.meta'
+
 shared_scripts {
     '@ox_lib/init.lua',
     'config/config.lua',
     'shared/utils.lua',
 }
 
--- framework (sessão/cancelamento/devolução) antes dos módulos de cada job.
--- Os módulos cutting/stacking/delivery entram conforme as fases 2–4.
 client_scripts {
     'client/ui.lua',
     'client/framework.lua',
@@ -38,6 +45,7 @@ server_scripts {
 
 files {
     'locales/*.json',
+    'data/*.meta',
 }
 
 dependencies {
